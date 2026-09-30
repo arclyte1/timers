@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111018">
+  <title>Вместе — общие таймеры</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">◷</span><span>Таймеры</span></a>
+    <div class="top-actions">
+      <div class="connection" id="connection"><span></span><b>Подключение…</b></div>
+      <button class="primary-button" id="addTimer"><span>＋</span> Новый таймер</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="workspace">
+      <div class="section-heading">
+        <div><h1>Все таймеры</h1><p><span id="timerCount">0</span> таймеров · <span id="runningCount">0</span> запущено · <span id="groupCount">0</span> групп</p></div>
+        <button class="ghost-button" id="addGroup">＋ Добавить группу</button>
+      </div>
+      <div id="groups" class="groups"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <dialog id="timerDialog">
+    <form method="dialog" id="timerForm">
+      <div class="dialog-head"><h3 id="timerDialogTitle">Новый таймер</h3><button type="button" class="icon-button close-dialog">×</button></div>
+      <input type="hidden" id="timerId">
+      <label>Название<input id="timerName" maxlength="80" required placeholder="Например, Фокус-сессия"></label>
+      <label>Группа<select id="timerGroup" required></select></label>
+      <fieldset><legend>Изначальное время</legend><div class="time-fields"><label>Часы<input id="hours" type="number" min="0" max="99" value="0"></label><label>Минуты<input id="minutes" type="number" min="0" max="59" value="25"></label><label>Секунды<input id="seconds" type="number" min="0" max="59" value="0"></label></div></fieldset>
+      <fieldset id="currentTimeFields" hidden><legend>Текущее время</legend><p class="field-hint">Можно изменить остаток, не меняя изначальное время.</p><div class="time-fields"><label>Часы<input id="currentHours" type="number" min="0" max="99" value="0"></label><label>Минуты<input id="currentMinutes" type="number" min="0" max="59" value="0"></label><label>Секунды<input id="currentSeconds" type="number" min="0" max="59" value="0"></label></div></fieldset>
+      <div class="dialog-actions"><button type="button" class="text-button close-dialog">Отмена</button><button class="primary-button" value="default">Сохранить</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="groupDialog">
+    <form method="dialog" id="groupForm">
+      <div class="dialog-head"><h3>Добавить группу</h3><button type="button" class="icon-button close-dialog">×</button></div>
+      <label>Название<input id="groupName" maxlength="80" required placeholder="Например, Тренировки"></label>
+      <div class="dialog-actions"><button type="button" class="text-button close-dialog">Отмена</button><button class="primary-button" value="default">Создать</button></div>
+    </form>
+  </dialog>
+  <script src="/app.js"></script>
+</body>
+</html>

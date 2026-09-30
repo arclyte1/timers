@@ -1,0 +1,20 @@
+services:
+  timers:
+    build: .
+    container_name: sync-timers
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - timer-data:/app/data
+    environment:
+      PORT: 3000
+      DATA_DIR: /app/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  timer-data:
