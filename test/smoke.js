@@ -61,6 +61,14 @@ async function run() {
   const adjusted = await adjustedState;
   if (adjusted.timers[0].durationMs !== 5000) throw new Error('Adjusting current time changed original duration');
   if (!adjusted.timers[0].running || !adjusted.timers[0].startedAt) throw new Error('Adjusting current time stopped running timer');
+
+  const newGroupState = nextState(a, (message) => message.groups.length === 2);
+  b.send(JSON.stringify({ type: 'action', action: { type: 'group.create', name: 'Moved' } }));
+  const withNewGroup = await newGroupState;
+  const destinationGroup = withNewGroup.groups.find((group) => group.name === 'Moved');
+  const movedState = nextState(b, (message) => message.timers[0]?.groupId === destinationGroup.id);
+  a.send(JSON.stringify({ type: 'action', action: { type: 'timer.move', id: created.timers[0].id, groupId: destinationGroup.id } }));
+  await movedState;
   finish();
 }
 

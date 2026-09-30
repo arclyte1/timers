@@ -74,7 +74,7 @@ function render() {
 function renderGroup(group) {
   const timers = state.timers.filter((timer) => timer.groupId === group.id);
   const content = timers.length ? `<div class="timer-grid">${timers.map(renderTimer).join('')}</div>` : `<div class="empty">В этой группе пока нет таймеров<br><button class="ghost-button" data-action="add" data-group="${group.id}">＋ Добавить таймер</button></div>`;
-  return `<article class="group"><header class="group-header"><div class="group-title"><span class="group-dot" style="background:${group.color}"></span><div><h3>${escapeHtml(group.name)}</h3><small>${timers.length} ${plural(timers.length, 'таймер', 'таймера', 'таймеров')}</small></div></div><div class="group-actions"><button class="icon-button" title="Добавить таймер" data-action="add" data-group="${group.id}">＋</button><button class="icon-button" title="Переименовать" data-action="rename-group" data-id="${group.id}">✎</button><button class="icon-button" title="Удалить группу" data-action="delete-group" data-id="${group.id}">×</button></div></header>${content}</article>`;
+  return `<article class="group" data-group-id="${group.id}"><header class="group-header"><div class="group-title"><span class="group-dot" style="background:${group.color}"></span><div><h3>${escapeHtml(group.name)}</h3><small>${timers.length} ${plural(timers.length, 'таймер', 'таймера', 'таймеров')}</small></div></div><div class="group-actions"><button class="icon-button" title="Добавить таймер" data-action="add" data-group="${group.id}">＋</button><button class="icon-button" title="Переименовать" data-action="rename-group" data-id="${group.id}">✎</button><button class="icon-button" title="Удалить группу" data-action="delete-group" data-id="${group.id}">×</button></div></header>${content}</article>`;
 }
 
 function renderTimer(timer) {
@@ -82,7 +82,7 @@ function renderTimer(timer) {
   const progress = timer.durationMs ? Math.max(0, Math.min(100, left / timer.durationMs * 100)) : 0;
   const urgency = left <= 0 ? 'completed' : left <= 30000 ? 'urgent' : '';
   const endedAt = left <= 0 && timer.completedAt ? `<small>Завершён ${formatCompletedAt(timer.completedAt)}</small>` : '';
-  return `<article class="timer-card ${timer.running ? 'running' : ''} ${urgency}" data-timer="${timer.id}"><div class="timer-top"><span class="timer-name">${escapeHtml(timer.name)}</span><div class="timer-menu"><button class="icon-button" title="Изменить" data-action="edit" data-id="${timer.id}">✎</button><button class="icon-button" title="Удалить" data-action="delete" data-id="${timer.id}">×</button></div></div><div class="timer-display" data-display>${formatTime(left)}</div><div class="progress"><i data-progress style="width:${progress}%"></i></div><div class="timer-bottom"><div class="timer-state"><button class="timer-status ${timer.running ? 'live' : ''}" data-action="reset" data-id="${timer.id}">${timer.running ? '● ИДЁТ' : left <= 0 ? 'ЗАВЕРШЁН' : '↺ СБРОСИТЬ'}</button>${endedAt}</div><button class="control" data-action="toggle" data-id="${timer.id}" title="${timer.running ? 'Пауза' : 'Запустить'}">${timer.running ? 'Ⅱ' : '▶'}</button></div></article>`;
+  return `<article class="timer-card ${timer.running ? 'running' : ''} ${urgency}" data-timer="${timer.id}" draggable="true"><div class="timer-top"><span class="timer-name">${escapeHtml(timer.name)}</span><div class="timer-menu"><button class="icon-button" title="Изменить" data-action="edit" data-id="${timer.id}">✎</button><button class="icon-button" title="Удалить" data-action="delete" data-id="${timer.id}">×</button></div></div><div class="timer-display" data-display>${formatTime(left)}</div><div class="progress"><i data-progress style="width:${progress}%"></i></div><div class="timer-bottom"><div class="timer-state"><button class="timer-status ${timer.running ? 'live' : ''}" data-action="reset" data-id="${timer.id}">${timer.running ? '● ИДЁТ' : left <= 0 ? 'ЗАВЕРШЁН' : '↺ СБРОСИТЬ'}</button>${endedAt}</div><button class="control" data-action="toggle" data-id="${timer.id}" title="${timer.running ? 'Пауза' : 'Запустить'}">${timer.running ? 'Ⅱ' : '▶'}</button></div></article>`;
 }
 
 function plural(number, one, few, many) {
@@ -127,6 +127,38 @@ elements.groups.addEventListener('click', (event) => {
     if (name?.trim()) send({ type: 'group.update', id, name });
   }
   if (action === 'delete-group' && confirm('Удалить группу? Таймеры переместятся в первую группу.')) send({ type: 'group.delete', id });
+});
+
+let draggedTimerId = null;
+elements.groups.addEventListener('dragstart', (event) => {
+  const card = event.target.closest('.timer-card');
+  if (!card || event.target.closest('button')) return event.preventDefault();
+  draggedTimerId = card.dataset.timer;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', draggedTimerId);
+  requestAnimationFrame(() => card.classList.add('dragging'));
+});
+elements.groups.addEventListener('dragend', () => {
+  document.querySelectorAll('.dragging,.drag-over').forEach((item) => item.classList.remove('dragging', 'drag-over'));
+  draggedTimerId = null;
+});
+elements.groups.addEventListener('dragover', (event) => {
+  if (!draggedTimerId) return;
+  const group = event.target.closest('[data-group-id]');
+  if (!group) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.drag-over').forEach((item) => item.classList.remove('drag-over'));
+  (event.target.closest('.timer-card') || group).classList.add('drag-over');
+});
+elements.groups.addEventListener('drop', (event) => {
+  if (!draggedTimerId) return;
+  const group = event.target.closest('[data-group-id]');
+  if (!group) return;
+  event.preventDefault();
+  const target = event.target.closest('.timer-card');
+  const beforeId = target?.dataset.timer === draggedTimerId ? undefined : target?.dataset.timer;
+  send({ type: 'timer.move', id: draggedTimerId, groupId: group.dataset.groupId, beforeId });
 });
 
 elements.timerForm.addEventListener('submit', (event) => {

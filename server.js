@@ -164,6 +164,17 @@ function applyAction(action) {
       timer.updatedAt = now;
       break;
     }
+    case 'timer.move': {
+      const sourceIndex = state.timers.findIndex((item) => item.id === action.id);
+      if (sourceIndex < 0) throw new Error('Таймер не найден');
+      if (!state.groups.some((group) => group.id === action.groupId)) throw new Error('Группа не найдена');
+      const [timer] = state.timers.splice(sourceIndex, 1);
+      timer.groupId = action.groupId;
+      timer.updatedAt = now;
+      const beforeIndex = action.beforeId ? state.timers.findIndex((item) => item.id === action.beforeId && item.groupId === action.groupId) : -1;
+      state.timers.splice(beforeIndex < 0 ? state.timers.length : beforeIndex, 0, timer);
+      break;
+    }
     case 'timer.delete': {
       const index = state.timers.findIndex((item) => item.id === action.id);
       if (index < 0) throw new Error('Таймер не найден');
