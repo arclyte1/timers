@@ -182,7 +182,11 @@ elements.groupForm.addEventListener('submit', (event) => {
 document.querySelector('#addTimer').addEventListener('click', () => openTimer());
 document.querySelector('#addGroup').addEventListener('click', () => { elements.groupDialog.showModal(); elements.groupName.focus(); });
 document.querySelectorAll('.close-dialog').forEach((button) => button.addEventListener('click', () => button.closest('dialog').close()));
-document.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); }));
+// Не закрываем окно по клику на затемнении: такое событие может возникнуть после
+// выделения текста или окончания drag-жеста за границами формы.
+document.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('click', (event) => {
+  if (event.target === dialog) event.stopPropagation();
+}));
 
 function showToast(message) {
   elements.toast.textContent = message;
