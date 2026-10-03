@@ -49,12 +49,9 @@ async function run() {
   const synced = nextState(b, (message) => message.timers.length === 1);
   a.send(JSON.stringify({ type: 'action', action: { type: 'timer.create', groupId, name: 'Smoke timer', durationMs: 5000 } }));
   const created = await synced;
-  if (created.timers[0].name !== 'Smoke timer') throw new Error('WebSocket sync failed');
-
-  const runningState = nextState(a, (message) => message.timers[0]?.running);
-  b.send(JSON.stringify({ type: 'action', action: { type: 'timer.toggle', id: created.timers[0].id } }));
-  const running = await runningState;
-  if (!running.timers[0].startedAt) throw new Error('Timer did not start');
+  if (created.timers[0].name !== 'Smoke timer' || !created.timers[0].running || !created.timers[0].startedAt) {
+    throw new Error('New timer did not start');
+  }
 
   const adjustedState = nextState(b, (message) => message.timers[0]?.remainingMs === 9000);
   a.send(JSON.stringify({ type: 'action', action: { type: 'timer.update', id: created.timers[0].id, remainingMs: 9000 } }));

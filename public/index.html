@@ -36,8 +36,8 @@
       <input type="hidden" id="timerId">
       <label>Название<input id="timerName" maxlength="80" required placeholder="Например, Фокус-сессия"></label>
       <label>Группа<select id="timerGroup" required></select></label>
-      <fieldset><legend>Изначальное время</legend><div class="time-fields"><label>Часы<input id="hours" type="number" min="0" max="99" value="0"></label><label>Минуты<input id="minutes" type="number" min="0" max="59" value="25"></label><label>Секунды<input id="seconds" type="number" min="0" max="59" value="0"></label></div></fieldset>
-      <fieldset id="currentTimeFields" hidden><legend>Текущее время</legend><p class="field-hint">Можно изменить остаток, не меняя изначальное время.</p><div class="time-fields"><label>Часы<input id="currentHours" type="number" min="0" max="99" value="0"></label><label>Минуты<input id="currentMinutes" type="number" min="0" max="59" value="0"></label><label>Секунды<input id="currentSeconds" type="number" min="0" max="59" value="0"></label></div></fieldset>
+      <fieldset><legend>Изначальное время</legend><div class="time-fields"><label>Часы<input id="hours" type="number" min="0" max="9999" value="0"></label><label>Минуты<input id="minutes" type="number" min="0" max="59" value="25"></label><label>Секунды<input id="seconds" type="number" min="0" max="59" value="0"></label></div></fieldset>
+      <fieldset id="currentTimeFields" hidden><legend>Текущее время</legend><p class="field-hint">Можно изменить остаток, не меняя изначальное время.</p><div class="time-fields"><label>Часы<input id="currentHours" type="number" min="0" max="9999" value="0"></label><label>Минуты<input id="currentMinutes" type="number" min="0" max="59" value="0"></label><label>Секунды<input id="currentSeconds" type="number" min="0" max="59" value="0"></label></div></fieldset>
       <div class="dialog-actions"><button type="button" class="text-button close-dialog">Отмена</button><button class="primary-button" value="default">Сохранить</button></div>
     </form>
   </dialog>

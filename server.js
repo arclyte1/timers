@@ -10,6 +10,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'timers.json');
 const MAX_TIMERS = 1000;
 const MAX_GROUPS = 100;
+const MAX_DURATION_MS = 9999 * 60 * 60 * 1000;
 
 const defaultState = {
   revision: 0,
@@ -78,7 +79,7 @@ function cleanText(value, fallback, max = 80) {
 function cleanDuration(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) throw new Error('Некорректное время');
-  return Math.min(Math.max(Math.round(numeric), 1000), 359999000);
+  return Math.min(Math.max(Math.round(numeric), 1000), MAX_DURATION_MS);
 }
 
 function applyAction(action) {
@@ -120,7 +121,7 @@ function applyAction(action) {
         id: crypto.randomUUID(), groupId: action.groupId,
         name: cleanText(action.name, 'Новый таймер'),
         durationMs, remainingMs: durationMs,
-        running: false, startedAt: null, completedAt: null, createdAt: now, updatedAt: now
+        running: true, startedAt: now, completedAt: null, createdAt: now, updatedAt: now
       });
       break;
     }
@@ -129,12 +130,13 @@ function applyAction(action) {
       if (!timer) throw new Error('Таймер не найден');
       if (action.name !== undefined) timer.name = cleanText(action.name, timer.name);
       if (action.groupId !== undefined && state.groups.some((group) => group.id === action.groupId)) timer.groupId = action.groupId;
+      const changedTime = action.durationMs !== undefined || action.remainingMs !== undefined;
       if (action.durationMs !== undefined) timer.durationMs = cleanDuration(action.durationMs);
       if (action.remainingMs !== undefined) {
         timer.remainingMs = cleanDuration(action.remainingMs);
         timer.completedAt = null;
-        if (timer.running) timer.startedAt = now;
       }
+      if (changedTime) Object.assign(timer, { running: true, startedAt: now, completedAt: null });
       timer.updatedAt = now;
       break;
     }

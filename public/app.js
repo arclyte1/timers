@@ -11,6 +11,8 @@ let state = { groups: [], timers: [], serverNow: Date.now() };
 let socket;
 let reconnectDelay = 500;
 let serverOffset = 0;
+let renderPending = false;
+let dialogScrollY = 0;
 
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
 const now = () => Date.now() + serverOffset;
@@ -18,10 +20,12 @@ const remaining = (timer) => timer.running ? Math.max(0, timer.remainingMs - (no
 
 function formatTime(milliseconds) {
   const total = Math.max(0, Math.ceil(milliseconds / 1000));
-  const hours = Math.floor(total / 3600);
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor(total / 3600) % 24;
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
-  return hours ? `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}` : `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+  const time = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+  return days ? `${days}д ${time}` : hours ? time : `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
 }
 
 function formatCompletedAt(timestamp) {
@@ -42,7 +46,8 @@ function connect() {
     if (message.type === 'state') {
       serverOffset = message.serverNow - Date.now();
       state = message;
-      render();
+      if ([...document.querySelectorAll('dialog')].some((dialog) => dialog.open)) renderPending = true;
+      else render();
     } else if (message.type === 'error') showToast(message.message);
   });
   socket.addEventListener('close', () => {
@@ -82,7 +87,7 @@ function renderTimer(timer) {
   const progress = timer.durationMs ? Math.max(0, Math.min(100, left / timer.durationMs * 100)) : 0;
   const urgency = left <= 0 ? 'completed' : left <= 30000 ? 'urgent' : '';
   const endedAt = left <= 0 && timer.completedAt ? `<small>Завершён ${formatCompletedAt(timer.completedAt)}</small>` : '';
-  return `<article class="timer-card ${timer.running ? 'running' : ''} ${urgency}" data-timer="${timer.id}" draggable="true"><div class="timer-top"><span class="timer-name">${escapeHtml(timer.name)}</span><div class="timer-menu"><button class="icon-button" title="Изменить" data-action="edit" data-id="${timer.id}">✎</button><button class="icon-button" title="Удалить" data-action="delete" data-id="${timer.id}">×</button></div></div><div class="timer-display" data-display>${formatTime(left)}</div><div class="progress"><i data-progress style="width:${progress}%"></i></div><div class="timer-bottom"><div class="timer-state"><button class="timer-status ${timer.running ? 'live' : ''}" data-action="reset" data-id="${timer.id}">${timer.running ? '● ИДЁТ' : left <= 0 ? 'ЗАВЕРШЁН' : '↺ СБРОСИТЬ'}</button>${endedAt}</div><button class="control" data-action="toggle" data-id="${timer.id}" title="${timer.running ? 'Пауза' : 'Запустить'}">${timer.running ? 'Ⅱ' : '▶'}</button></div></article>`;
+  return `<article class="timer-card ${timer.running ? 'running' : ''} ${urgency}" data-timer="${timer.id}" draggable="true"><div class="timer-top"><span class="timer-name">${escapeHtml(timer.name)}</span><div class="timer-menu"><button class="icon-button" title="Изменить" data-action="edit" data-id="${timer.id}">✎</button><button class="icon-button" title="Удалить" data-action="delete" data-id="${timer.id}">×</button></div></div><div class="timer-display" data-display>${formatTime(left)}</div><div class="progress"><i data-progress style="width:${progress}%"></i></div><div class="timer-bottom"><div class="timer-state">${endedAt}</div><div style="display:flex;gap:5px"><button class="control" data-action="reset" data-id="${timer.id}" title="Сбросить">↺</button><button class="control" data-action="toggle" data-id="${timer.id}" title="${timer.running ? 'Пауза' : 'Запустить'}">${timer.running ? 'Ⅱ' : '▶'}</button></div></div></article>`;
 }
 
 function plural(number, one, few, many) {
@@ -108,6 +113,7 @@ function openTimer(groupId, timerId) {
     elements.currentMinutes.value = Math.floor((currentSeconds % 3600) / 60);
     elements.currentSeconds.value = currentSeconds % 60;
   }
+  dialogScrollY = window.scrollY;
   document.querySelector('#timerDialogTitle').textContent = timer ? 'Изменить таймер' : 'Новый таймер';
   elements.timerDialog.showModal();
   elements.timerName.focus();
@@ -184,9 +190,18 @@ document.querySelector('#addGroup').addEventListener('click', () => { elements.g
 document.querySelectorAll('.close-dialog').forEach((button) => button.addEventListener('click', () => button.closest('dialog').close()));
 // Не закрываем окно по клику на затемнении: такое событие может возникнуть после
 // выделения текста или окончания drag-жеста за границами формы.
-document.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('click', (event) => {
-  if (event.target === dialog) event.stopPropagation();
-}));
+document.querySelectorAll('dialog').forEach((dialog) => {
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) event.stopPropagation();
+  });
+  dialog.addEventListener('close', () => {
+    if (renderPending) {
+      renderPending = false;
+      render();
+    }
+    requestAnimationFrame(() => window.scrollTo(0, dialogScrollY));
+  });
+});
 
 function showToast(message) {
   elements.toast.textContent = message;
