@@ -219,9 +219,11 @@ const redirectServer = http.createServer((request, response) => {
 const server = tlsEnabled
   ? net.createServer((socket) => {
       socket.once('data', (chunk) => {
-        socket.unshift(chunk);
+        socket.pause();
         const target = chunk[0] === 0x16 ? applicationServer : redirectServer;
         target.emit('connection', socket);
+        socket.unshift(chunk);
+        socket.resume();
       });
     })
   : applicationServer;
