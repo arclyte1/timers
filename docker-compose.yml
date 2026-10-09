@@ -3,15 +3,21 @@ services:
     build: .
     container_name: sync-timers
     restart: unless-stopped
+    # Private keys are normally readable only by root on the host.
+    user: "0:0"
     ports:
       - "3000:3000"
     volumes:
       - timer-data:/app/data
+      - /root/cert/ip/fullchain.pem:/run/tls/fullchain.pem:ro
+      - /root/cert/ip/privkey.pem:/run/tls/privkey.pem:ro
     environment:
       PORT: 3000
       DATA_DIR: /app/data
+      TLS_CERT_FILE: /run/tls/fullchain.pem
+      TLS_KEY_FILE: /run/tls/privkey.pem
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
+      test: ["CMD", "wget", "--no-check-certificate", "--spider", "-q", "https://127.0.0.1:3000/api/health"]
       interval: 15s
       timeout: 3s
       retries: 3

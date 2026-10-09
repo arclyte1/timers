@@ -1,11 +1,14 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer, WebSocket } = require('ws');
 
 const PORT = Number(process.env.PORT) || 3000;
+const TLS_CERT_FILE = process.env.TLS_CERT_FILE;
+const TLS_KEY_FILE = process.env.TLS_KEY_FILE;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'timers.json');
 const MAX_TIMERS = 1000;
@@ -197,7 +200,12 @@ app.get('/api/health', (_request, response) => response.json({ ok: true, revisio
 app.get('/api/state', (_request, response) => response.json(publicState()));
 app.get('*', (_request, response) => response.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-const server = http.createServer(app);
+const server = TLS_CERT_FILE && TLS_KEY_FILE
+  ? https.createServer({
+      cert: fs.readFileSync(TLS_CERT_FILE),
+      key: fs.readFileSync(TLS_KEY_FILE)
+    }, app)
+  : http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16 * 1024 });
 wss.on('connection', (socket) => {
   socket.send(JSON.stringify(publicState()));
@@ -221,7 +229,8 @@ setInterval(() => {
   }
 }, 500);
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Sync Timers listening on http://0.0.0.0:${PORT}`));
+const protocol = TLS_CERT_FILE && TLS_KEY_FILE ? 'https' : 'http';
+server.listen(PORT, '0.0.0.0', () => console.log(`Sync Timers listening on ${protocol}://0.0.0.0:${PORT}`));
 
 function shutdown() {
   clearTimeout(saveTimer);
