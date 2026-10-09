@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const https = require('https');
+const net = require('net');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -200,13 +201,32 @@ app.get('/api/health', (_request, response) => response.json({ ok: true, revisio
 app.get('/api/state', (_request, response) => response.json(publicState()));
 app.get('*', (_request, response) => response.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-const server = TLS_CERT_FILE && TLS_KEY_FILE
+const tlsEnabled = TLS_CERT_FILE && TLS_KEY_FILE;
+const applicationServer = tlsEnabled
   ? https.createServer({
       cert: fs.readFileSync(TLS_CERT_FILE),
       key: fs.readFileSync(TLS_KEY_FILE)
     }, app)
   : http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16 * 1024 });
+
+// When TLS is enabled, keep the current public port usable for HTTP too:
+// plaintext requests receive a redirect, while TLS requests are handled normally.
+const redirectServer = http.createServer((request, response) => {
+  const host = request.headers.host || `localhost:${PORT}`;
+  response.writeHead(308, { Location: `https://${host}${request.url}` });
+  response.end();
+});
+const server = tlsEnabled
+  ? net.createServer((socket) => {
+      socket.once('data', (chunk) => {
+        socket.unshift(chunk);
+        const target = chunk[0] === 0x16 ? applicationServer : redirectServer;
+        target.emit('connection', socket);
+      });
+    })
+  : applicationServer;
+
+const wss = new WebSocketServer({ server: applicationServer, path: '/ws', maxPayload: 16 * 1024 });
 wss.on('connection', (socket) => {
   socket.send(JSON.stringify(publicState()));
   socket.on('message', (raw) => {
@@ -229,7 +249,7 @@ setInterval(() => {
   }
 }, 500);
 
-const protocol = TLS_CERT_FILE && TLS_KEY_FILE ? 'https' : 'http';
+const protocol = tlsEnabled ? 'https' : 'http';
 server.listen(PORT, '0.0.0.0', () => console.log(`Sync Timers listening on ${protocol}://0.0.0.0:${PORT}`));
 
 function shutdown() {
