@@ -39,7 +39,8 @@ function formatCompletedAt(timestamp) {
 
 function formatLastInteraction(interaction) {
   if (!interaction?.login || !interaction?.at) return '';
-  return `${escapeHtml(interaction.login)} · ${formatCompletedAt(interaction.at)}`;
+  const color = /^#[0-9a-f]{6}$/i.test(interaction.color || '') ? interaction.color : '#91a6ff';
+  return `<span class="nick" style="color:${color}">${escapeHtml(interaction.login)}</span> · ${formatCompletedAt(interaction.at)}`;
 }
 
 function connect() {
