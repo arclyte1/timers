@@ -40,7 +40,8 @@ function formatCompletedAt(timestamp) {
 function formatLastInteraction(interaction) {
   if (!interaction?.login || !interaction?.at) return '';
   const color = /^#[0-9a-f]{6}$/i.test(interaction.color || '') ? interaction.color : '#91a6ff';
-  return `<span class="nick" style="color:${color}">${escapeHtml(interaction.login)}</span> · ${formatCompletedAt(interaction.at)}`;
+  const longNick = String(interaction.login).length > 14;
+  return `<span class="nick" style="color:${color}">${escapeHtml(interaction.login)}</span><span class="interaction-time ${longNick ? 'new-line' : ''}">${longNick ? '' : ' · '}${formatCompletedAt(interaction.at)}</span>`;
 }
 
 function connect() {
