@@ -37,6 +37,11 @@ function formatCompletedAt(timestamp) {
   return sameDay ? `в ${time}` : `${date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} в ${time}`;
 }
 
+function formatLastInteraction(interaction) {
+  if (!interaction?.login || !interaction?.at) return '';
+  return `${escapeHtml(interaction.login)} · ${formatCompletedAt(interaction.at)}`;
+}
+
 function connect() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   socket = new WebSocket(`${protocol}//${location.host}/ws`);
@@ -87,7 +92,8 @@ function renderTimer(timer) {
   const progress = timer.durationMs ? Math.max(0, Math.min(100, left / timer.durationMs * 100)) : 0;
   const urgency = left <= 0 ? 'completed' : left <= 30000 ? 'urgent' : '';
   const endedAt = left <= 0 && timer.completedAt ? `<small>Завершён ${formatCompletedAt(timer.completedAt)}</small>` : '';
-  return `<article class="timer-card ${timer.running ? 'running' : ''} ${urgency}" data-timer="${timer.id}" draggable="true"><div class="timer-top"><span class="timer-name">${escapeHtml(timer.name)}</span><div class="timer-menu"><button class="icon-button" title="Изменить" data-action="edit" data-id="${timer.id}">✎</button><button class="icon-button" title="Удалить" data-action="delete" data-id="${timer.id}">×</button></div></div><div class="timer-display" data-display>${formatTime(left)}</div><div class="progress"><i data-progress style="width:${progress}%"></i></div><div class="timer-bottom"><div class="timer-state">${endedAt}</div><div style="display:flex;gap:5px"><button class="control" data-action="reset" data-id="${timer.id}" title="Сбросить">↺</button><button class="control" data-action="toggle" data-id="${timer.id}" title="${timer.running ? 'Пауза' : 'Запустить'}">${timer.running ? 'Ⅱ' : '▶'}</button></div></div></article>`;
+  const lastInteraction = formatLastInteraction(timer.lastInteraction);
+  return `<article class="timer-card ${timer.running ? 'running' : ''} ${urgency}" data-timer="${timer.id}" draggable="true"><div class="timer-top"><div class="timer-heading"><span class="timer-name">${escapeHtml(timer.name)}</span>${lastInteraction ? `<small class="timer-interaction">${lastInteraction}</small>` : ''}</div><div class="timer-menu"><button class="icon-button" title="Изменить" data-action="edit" data-id="${timer.id}">✎</button><button class="icon-button" title="Удалить" data-action="delete" data-id="${timer.id}">×</button></div></div><div class="timer-display" data-display>${formatTime(left)}</div><div class="progress"><i data-progress style="width:${progress}%"></i></div><div class="timer-bottom"><div class="timer-state">${endedAt}</div><div style="display:flex;gap:5px"><button class="control" data-action="reset" data-id="${timer.id}" title="Сбросить">↺</button><button class="control" data-action="toggle" data-id="${timer.id}" title="${timer.running ? 'Пауза' : 'Запустить'}">${timer.running ? 'Ⅱ' : '▶'}</button></div></div></article>`;
 }
 
 function plural(number, one, few, many) {
